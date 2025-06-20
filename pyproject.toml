@@ -1,0 +1,52 @@
+# Build system configuration
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "games/hangman",
+    "games/lucky9",
+    "games/mastermind",
+    "games/number_guessing",
+    "games/rock_paper_scissors",
+    "games/common"
+]
+
+# Project metadata and dependencies
+[project]
+name = "python-game-suite"
+version = "1.0.0"
+description = "A collection of classic games implemented in Python."
+requires-python = ">=3.9"
+authors = [
+    { name = "Onehand Coding", email = "Onehand.coding433@gmail.com" },
+]
+
+dependencies = [
+    "pygame>=2.5.0",
+]
+
+# Development dependencies
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6",        # Linting and formatting
+]
+
+# CLI entry point
+# [project.scripts]
+# run-games = "games.__main__:main"
+
+# Code formatting and linting
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # Error, pyflakes, warning, import sorting
+ignore = ["E501"]              # Ignore line too long (handled by formatter)
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false

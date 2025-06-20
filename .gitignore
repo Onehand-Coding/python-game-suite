@@ -1,6 +1,7 @@
 # My default ignored files.
-.sublime-project-files/
+*.sublime-*
 __pycache__/
+.ruff_cache/
 .venv/
 __main__.py
 __init__.py

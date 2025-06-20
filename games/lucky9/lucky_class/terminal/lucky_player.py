@@ -1,4 +1,3 @@
-
 class Player:
     def __init__(self, name: str, money=10_000):
         self.name = name
@@ -56,7 +55,9 @@ class Player:
         value %= 10
 
         cardCounts = len(self.hand)
-        if (cardCounts == 3 and len(set(ranks)) == 1) or (cardCounts == 2 and len(aces) == 2):
+        if (cardCounts == 3 and len(set(ranks)) == 1) or (
+            cardCounts == 2 and len(aces) == 2
+        ):
             value = 9
 
         return value

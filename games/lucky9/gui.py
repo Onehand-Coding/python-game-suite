@@ -1,6 +1,7 @@
-import sys
 import pickle
+import sys
 from pathlib import Path
+
 import pygame
 from lucky_class.gui import *
 
@@ -107,10 +108,7 @@ def displayCoins():
 
 
 def saveGame():
-    gameState = {
-        "player_money": player.money,
-        "dealer_money": dealer.money
-    }
+    gameState = {"player_money": player.money, "dealer_money": dealer.money}
     with open(luckyFolder / "lucky9_data.pkl", "wb") as file:
         pickle.dump(gameState, file)
 
@@ -142,7 +140,11 @@ def handleState():
             REVEAL_SOUND.play()
             if len(player.hand) == 3 and player.isHandRevealed:
                 currentState = GameState.DEALER_TURN
-        elif goodButton.isPressed(GREEN, DARK_GREEN) and player.isHandRevealed and not dealer.isHandRevealed:
+        elif (
+            goodButton.isPressed(GREEN, DARK_GREEN)
+            and player.isHandRevealed
+            and not dealer.isHandRevealed
+        ):
             GOOD_SOUND.play()
             currentState = GameState.DEALER_TURN
         lastActionTime = pygame.time.get_ticks()
@@ -212,7 +214,9 @@ def renderGame():
     # Dealer
     dealer.displayHand(WINDOW, DEALER_POS)
     dealerHandValue = "??" if not dealer.isHandRevealed else dealer.getHandValue()
-    dealerHandValueText = TEXT_FONT.render(f"{dealer.name}: {dealerHandValue}", True, WHITE)
+    dealerHandValueText = TEXT_FONT.render(
+        f"{dealer.name}: {dealerHandValue}", True, WHITE
+    )
     WINDOW.blit(dealerHandValueText, (50, 180))
     dealerMoneyText = TEXT_FONT.render(f"Pera: {dealer.money:,} Pesos", True, WHITE)
     WINDOW.blit(dealerMoneyText, (50, 300))
@@ -229,7 +233,7 @@ def renderGame():
     else:
         playerBetText = TEXT_FONT.render(f"Taya: {player.bet:,}", True, WHITE)
     WINDOW.blit(playerBetText, (50, 50))
-    choiceBetText = TEXT_FONT.render(f"Pumili ng taya:", True, WHITE)
+    choiceBetText = TEXT_FONT.render("Pumili ng taya:", True, WHITE)
     WINDOW.blit(choiceBetText, (190, 2))
 
     handleState()
@@ -251,5 +255,5 @@ def main():
         CLOCK.tick(FPS)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

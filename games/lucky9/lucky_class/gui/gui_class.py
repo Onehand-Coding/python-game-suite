@@ -1,21 +1,23 @@
 import random
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
+
 import pygame
+
 from .colors import *
 
 pygame.init()
 
-RESOURCES_FOLDER = Path(__file__).parent / 'resources'
+RESOURCES_FOLDER = Path(__file__).parent / "resources"
 
-BG_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/bg_music.wav')
-WIN_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/win.wav')
-LOSE_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/lose.wav')
-TIE_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/tie.wav')
-BET_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/bet.wav')
-REVEAL_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/reveal.wav')
-HITS_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/hits.wav')
-GOOD_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / 'sounds/good.mp3')
+BG_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/bg_music.wav")
+WIN_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/win.wav")
+LOSE_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/lose.wav")
+TIE_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/tie.wav")
+BET_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/bet.wav")
+REVEAL_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/reveal.wav")
+HITS_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/hits.wav")
+GOOD_SOUND = pygame.mixer.Sound(RESOURCES_FOLDER / "sounds/good.mp3")
 
 
 class GameState(Enum):
@@ -32,7 +34,7 @@ class Card:
         self.name = name
         self.value = int(self.rank)
         self.imageFile = f"{self.suit}-{self.rank}.png"
-        self.imagePath = RESOURCES_FOLDER / 'card_images'
+        self.imagePath = RESOURCES_FOLDER / "card_images"
         self.face = pygame.image.load(self.imagePath / self.imageFile)
         self.back = pygame.image.load(self.imagePath / "back.png")
         self.showFace = False
@@ -148,7 +150,7 @@ class Coin:
         self.value = value
         self.pos = pos
         self.imageFile = name + ".png"
-        self.imagePath = RESOURCES_FOLDER / 'coin_images'
+        self.imagePath = RESOURCES_FOLDER / "coin_images"
         self.image = pygame.image.load(self.imagePath / self.imageFile)
         self.rect = self.image.get_rect(midleft=(pos))
         self.valueTextYSpacer = 40
@@ -183,7 +185,10 @@ class Button:
         self.textSurf = self.buttonFont.render(text, True, textColor)
         self.textRect = self.textSurf.get_rect(center=self.topRect.center)
 
-    def display(self, screen,):
+    def display(
+        self,
+        screen,
+    ):
         pygame.draw.rect(screen, self.topColor, self.topRect, border_radius=8)
         screen.blit(self.textSurf, self.textRect)
 

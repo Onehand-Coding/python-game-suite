@@ -1,6 +1,7 @@
-import shelve
 import random
+import shelve
 from pathlib import Path
+
 from .lucky_player import Dealer
 
 
