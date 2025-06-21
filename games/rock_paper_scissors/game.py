@@ -92,7 +92,3 @@ class RockPaperScissorsGame(Game):
         print("\nPlay another match? (Y/n)")
         return input("> ").lower().strip().startswith("y")
 
-
-# To make this game discoverable by main.py, you can add an __init__.py file
-# in the 'games/rock_paper_scissors' directory with the following line:
-# from .game import RockPaperScissorsGame

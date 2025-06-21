@@ -6,7 +6,7 @@ class Game(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_name():
+    def get_name() -> str:
         """Return the display name of the game."""
         pass
 

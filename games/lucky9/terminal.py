@@ -1,7 +1,8 @@
 import sys
 import time
 
-from lucky_class.terminal import *
+from games.common.game_template import Game
+from .terminal_engine import Lucky9, Player
 
 TAGALOG_COUNT = {
     1: "Isa",
@@ -15,79 +16,6 @@ TAGALOG_COUNT = {
     9: "Siyam",
     10: "Sampu",
 }
-
-
-def main():
-    global lucky9
-
-    name = ""
-    print("\nAnong pangalan mo?")
-    while not name:
-        name = input("> ").strip()
-
-    player = Player(name)
-    lucky9 = Lucky9(player)
-    lucky9.isLoaded = False
-
-    if lucky9.player.name not in lucky9.getPlayerNames():
-        print(f"\ntara {lucky9.player.name}! laro muna tayo ng lucky9.")
-        time.sleep(1)
-        input("\n\tgame?")
-
-    if not continuePreviousGame():
-        print(f"\nAyan {lucky9.player.money:,} Pesos, pera mo pangpuhunan.")
-        print(f"\nBangka: {lucky9.dealer}")
-
-    else:
-        print("\n\tPAALALA!\nIsave ang laro bago lumabas!")
-        if isBroke(lucky9.player.money):
-            print("\nWala kang pera!")
-
-    while True:
-        lucky9.player.drewCard = False
-
-        if isBroke(lucky9.player.money) and not borrowMoney():
-            print("\nBetter Luck next time amigo.")
-            if lucky9.isLoaded:
-                lucky9.saveData()
-            executeCommand("EXIT")
-
-        if isBroke(lucky9.dealer.money):
-            levelUp()
-
-        checkDeckCount()
-        getPlayerBet()
-        deal()
-        displayHands(False)
-        getPlayerMove()
-
-        if lucky9.player.move == "H":
-            lucky9.player.drewCard = True
-            lucky9.player.hand.append(lucky9.deck.pop())
-            rank, suit = lucky9.player.hand[-1]
-            print("\nHumihirit...")
-            time.sleep(2)
-            print(f"\n{rank} na {suit} ang hirit mo")
-
-        if lucky9.dealer.getHandValue() < 7:
-            lucky9.dealer.hand.append(lucky9.deck.pop())
-
-            rank, suit = lucky9.dealer.hand[-1]
-
-            if lucky9.player.drewCard:
-                print("\nHihirit din ang bangka...")
-            else:
-                print("\nHihirit ang banka...")
-
-            time.sleep(2)
-            print(f"\n{rank} na {suit} ang hirit ng bangka.")
-
-        input("\n\tGame?")
-
-        displayHands()
-        displayWinner()
-        clearHands()
-        collectPlayerDebt()
 
 
 def getPlayerBet():
@@ -433,5 +361,80 @@ def yesOrNo():
         return True if response == "OO" else False
 
 
-if __name__ == "__main__":
-    main()
+class TerminalLucky9(Game):
+
+    @staticmethod
+    def get_name():
+        return "Terminal Lucky9"
+
+    def run(self):
+        global lucky9
+
+        name = ""
+        print("\nAnong pangalan mo?")
+        while not name:
+            name = input("> ").strip()
+
+        player = Player(name)
+        lucky9 = Lucky9(player)
+        lucky9.isLoaded = False
+
+        if lucky9.player.name not in lucky9.getPlayerNames():
+            print(f"\ntara {lucky9.player.name}! laro muna tayo ng lucky9.")
+            time.sleep(1)
+            input("\n\tgame?")
+
+        if not continuePreviousGame():
+            print(f"\nAyan {lucky9.player.money:,} Pesos, pera mo pangpuhunan.")
+            print(f"\nBangka: {lucky9.dealer}")
+
+        else:
+            print("\n\tPAALALA!\nIsave ang laro bago lumabas!")
+            if isBroke(lucky9.player.money):
+                print("\nWala kang pera!")
+
+        while True:
+            lucky9.player.drewCard = False
+
+            if isBroke(lucky9.player.money) and not borrowMoney():
+                print("\nBetter Luck next time amigo.")
+                if lucky9.isLoaded:
+                    lucky9.saveData()
+                executeCommand("EXIT")
+
+            if isBroke(lucky9.dealer.money):
+                levelUp()
+
+            checkDeckCount()
+            getPlayerBet()
+            deal()
+            displayHands(False)
+            getPlayerMove()
+
+            if lucky9.player.move == "H":
+                lucky9.player.drewCard = True
+                lucky9.player.hand.append(lucky9.deck.pop())
+                rank, suit = lucky9.player.hand[-1]
+                print("\nHumihirit...")
+                time.sleep(2)
+                print(f"\n{rank} na {suit} ang hirit mo")
+
+            if lucky9.dealer.getHandValue() < 7:
+                lucky9.dealer.hand.append(lucky9.deck.pop())
+
+                rank, suit = lucky9.dealer.hand[-1]
+
+                if lucky9.player.drewCard:
+                    print("\nHihirit din ang bangka...")
+                else:
+                    print("\nHihirit ang banka...")
+
+                time.sleep(2)
+                print(f"\n{rank} na {suit} ang hirit ng bangka.")
+
+            input("\n\tGame?")
+
+            displayHands()
+            displayWinner()
+            clearHands()
+            collectPlayerDebt()
