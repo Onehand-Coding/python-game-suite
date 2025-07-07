@@ -1,7 +1,6 @@
-# games/hangman/hangman.py
 import string
 
-from games.common.game_template import Game
+from python_game_suite.common.game_template import Game
 
 from .words import getWord  # The relative import is correct
 

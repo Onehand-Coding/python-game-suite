@@ -1,7 +1,7 @@
 # games/number_guessing/game.py
 import random
 
-from games.common.game_template import Game
+from python_game_suite.common.game_template import Game
 
 
 class NumberGuessingGame(Game):

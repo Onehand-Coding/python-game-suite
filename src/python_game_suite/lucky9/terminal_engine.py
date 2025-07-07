@@ -1,11 +1,7 @@
 import random
 import shelve
 
-import pygame
-
 from .config import DATA_DIR
-
-pygame.init()
 
 
 class Lucky9:

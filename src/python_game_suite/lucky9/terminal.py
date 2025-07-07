@@ -1,7 +1,7 @@
 import sys
 import time
 
-from games.common.game_template import Game
+from python_game_suite.common.game_template import Game
 from .terminal_engine import Lucky9, Player
 
 TAGALOG_COUNT = {

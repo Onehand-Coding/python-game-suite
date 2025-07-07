@@ -2,7 +2,7 @@
 import random
 import time
 
-from games.common.game_template import Game  # Import the base class
+from python_game_suite.common.game_template import Game
 
 WEAPONS = {
     "r": "rock",

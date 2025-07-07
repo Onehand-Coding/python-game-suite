@@ -4,19 +4,19 @@ import inspect
 import pkgutil
 import sys
 
-import games
-from games.common.game_template import Game
+import python_game_suite
+from python_game_suite.common.game_template import Game
 
 
 def discover_games():
-    """Finds all Game classes in the 'games' package."""
+    """Finds all Game classes in the 'python_game_suite' package."""
     game_classes = {}
 
-    # The path to the 'games' package
-    package_path = games.__path__
-    package_name = games.__name__
+    # The path to the 'python_game_suite' package
+    package_path = python_game_suite.__path__
+    package_name = python_game_suite.__name__
 
-    # Walk through all modules in the 'games' package
+    # Walk through all modules in the 'python_game_suite' package
     for _, module_name, _ in pkgutil.walk_packages(
         package_path, prefix=f"{package_name}."
     ):

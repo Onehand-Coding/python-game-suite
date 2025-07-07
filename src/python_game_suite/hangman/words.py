@@ -1,4 +1,3 @@
-# games/hangman/words.py
 import os
 import random
 

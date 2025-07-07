@@ -19,8 +19,8 @@ def create_dirs(paths: List[Path]) -> None:
 
 ROOT_DIR = get_current_dir()
 
-ASSETS_DIR = ROOT_DIR / "games" / "lucky9" / "assets"
-DATA_DIR = ROOT_DIR / "games" / "lucky9" / "data"
+ASSETS_DIR = ROOT_DIR / "src" / "python_game_suite" / "lucky9" / "assets"
+DATA_DIR = ROOT_DIR / "src" / "python_game_suite" / "lucky9" / "data"
 SOUND_ASSETS_DIR = ASSETS_DIR / "sounds"
 IMAGE_ASSETS_DIR = ASSETS_DIR / "images"
 
