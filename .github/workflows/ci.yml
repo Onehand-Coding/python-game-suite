@@ -35,3 +35,9 @@ jobs:
 
       - name: Test
         run: uv run pytest
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Check wheel contents
+        run: python -m zipfile -l dist/*.whl | grep python_game_suite/hangman/words.txt

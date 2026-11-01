@@ -173,3 +173,24 @@ def test_save_load_list_delete_and_clear(tmp_path):
     game.saveData()
     game.clearData()
     assert game.getPlayerNames() == []
+
+
+def test_data_dir_override(tmp_path):
+    game = make_game(tmp_path)
+    assert game.dataFolder == tmp_path
+    game.player.name = "Alice"
+    game.saveData()
+    assert list(tmp_path.glob("lucky_data*"))
+
+
+def test_clear_data_keeps_unrelated_files(tmp_path):
+    game = make_game(tmp_path)
+    game.player.name = "Alice"
+    game.saveData()
+    keep = tmp_path / "keep.txt"
+    keep.write_text("keep")
+
+    game.clearData()
+
+    assert keep.exists()
+    assert not list(tmp_path.glob("lucky_data*"))

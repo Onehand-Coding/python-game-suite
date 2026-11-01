@@ -2282,4 +2282,15 @@ Deviations made during execution:
 - `Lucky9Session` tests include the dealer three-card cap.
 - The generated screenshot was inspected and regenerated after the cap fix.
 
+Post-review additions:
+
+- Added a `clearData` sentinel test that proves unrelated files survive.
+- Added a data-directory override test that proves saves land under the supplied
+  path.
+- Added GUI hit-key and hit-button tests plus wrong-phase and second-hit session
+  tests.
+- Added terminal debt message assertions for paid, refused, and penalty paths.
+- Clamped the displayed dealer balance at zero during an overdrawn round.
+- CI now builds a wheel and checks that `hangman/words.txt` is packaged.
+
 

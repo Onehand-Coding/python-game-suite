@@ -146,3 +146,34 @@ def test_session_reshuffles_low_deck(tmp_path):
     session.game.deck = session.game.deck[-5:]
     session.place_bet(1_000)
     assert len(session.game.deck) >= 30
+
+
+def test_hit_and_stand_are_ignored_in_betting_phase(tmp_path):
+    session = make_session(tmp_path)
+    session.hit()
+    session.stand()
+    assert session.phase is Phase.BETTING
+    assert session.player.hand == []
+
+
+def test_second_hit_is_ignored(tmp_path):
+    session = make_session(
+        tmp_path,
+        ("2", "S"),
+        ("9", "S"),
+        ("3", "S"),
+        ("2", "S"),
+        ("2", "S"),
+    )
+    session.place_bet(1_000)
+    session.hit()
+    hand = list(session.player.hand)
+    session.hit()
+    assert session.player.hand == hand
+
+
+def test_place_bet_is_ignored_outside_betting_phase(tmp_path):
+    session = make_session(tmp_path, ("9", "S"), ("7", "S"), ("1", "S"), ("2", "S"))
+    session.place_bet(1_000)
+    assert session.place_bet(2_000) is False
+    assert session.bet == 1_000

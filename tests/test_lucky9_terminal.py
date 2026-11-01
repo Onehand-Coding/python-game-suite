@@ -89,7 +89,7 @@ def test_level_up_at_max_saves_and_exits(tmp_path, monkeypatch):
     assert calls == ["save"]
 
 
-def test_collect_debt_paid(tmp_path, monkeypatch):
+def test_collect_debt_paid(tmp_path, monkeypatch, capsys):
     game = make_game(tmp_path)
     game.player.money = 50_000
     game.player.debt = 10_000
@@ -99,9 +99,10 @@ def test_collect_debt_paid(tmp_path, monkeypatch):
     terminal.collectPlayerDebt()
     assert game.player.debt == 0
     assert game.player.money == 40_000
+    assert "Ayan bayad na utang mo." in capsys.readouterr().out
 
 
-def test_collect_debt_refused(tmp_path, monkeypatch):
+def test_collect_debt_refused(tmp_path, monkeypatch, capsys):
     game = make_game(tmp_path)
     game.player.money = 50_000
     game.player.debt = 10_000
@@ -110,9 +111,10 @@ def test_collect_debt_refused(tmp_path, monkeypatch):
     terminal.collectPlayerDebt()
     assert game.player.debt == 10_000
     assert game.player.timesRefusedToPay == 1
+    assert "pagka kuripot naman?" in capsys.readouterr().out
 
 
-def test_collect_debt_penalty(tmp_path, monkeypatch):
+def test_collect_debt_penalty(tmp_path, monkeypatch, capsys):
     game = make_game(tmp_path)
     game.player.money = 50_000
     game.player.debt = 10_000
@@ -123,6 +125,7 @@ def test_collect_debt_penalty(tmp_path, monkeypatch):
     terminal.collectPlayerDebt()
     assert game.player.debt == 0
     assert game.player.money == 30_000
+    assert "babawasan ng doble ang pera mo." in capsys.readouterr().out
 
 
 def test_terminal_game_name():

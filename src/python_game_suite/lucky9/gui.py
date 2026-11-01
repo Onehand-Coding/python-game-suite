@@ -134,7 +134,8 @@ class Lucky9Gui(Game):
         stats = [
             f"Level: {self.session.level}",
             f"You: {self.session.player.money:,}",
-            f"Dealer: {self.session.dealer.name} ({self.session.dealer.money:,})",
+            f"Dealer: {self.session.dealer.name} "
+            f"({max(self.session.dealer.money, 0):,})",
             f"Bet: {self.session.bet:,}",
         ]
         x = 24

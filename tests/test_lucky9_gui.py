@@ -93,3 +93,32 @@ def test_dealer_cards_reveal_after_round(pygame_display, tmp_path):
     assert gui.dealer_revealed is False
     session.stand()
     assert gui.dealer_revealed is True
+
+
+def test_hit_key_resolves_round(pygame_display, tmp_path):
+    gui, session = make_gui(
+        tmp_path, ("2", "S"), ("9", "S"), ("3", "S"), ("2", "S"), ("2", "S")
+    )
+    surface = pygame_display.Surface((960, 600))
+    session.place_bet(1_000)
+    gui.render(surface)
+    event = pygame_display.event.Event(pygame_display.KEYDOWN, key=pygame_display.K_h)
+    assert gui.handle_event(event) is True
+    assert session.phase is Phase.ROUND_OVER
+    assert len(session.player.hand) == 3
+
+
+def test_hit_button_resolves_round(pygame_display, tmp_path):
+    gui, session = make_gui(
+        tmp_path, ("2", "S"), ("9", "S"), ("3", "S"), ("2", "S"), ("2", "S")
+    )
+    surface = pygame_display.Surface((960, 600))
+    session.place_bet(1_000)
+    gui.render(surface)
+    rect = gui.buttons["hit"]
+    event = pygame_display.event.Event(
+        pygame_display.MOUSEBUTTONDOWN, button=1, pos=rect.center
+    )
+    assert gui.handle_event(event) is True
+    assert session.phase is Phase.ROUND_OVER
+    assert len(session.player.hand) == 3
