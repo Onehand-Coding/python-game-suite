@@ -1,206 +1,145 @@
-# import random
-# from enum import Enum
+from __future__ import annotations
 
-# import pygame
+from collections.abc import Callable
+from enum import Enum
+from pathlib import Path
 
-# from .colors import *
-# from .config import ASSETS_DIR, DATA_DIR, SOUND_ASSETS_DIR, IMAGE_ASSETS_DIR
+from .terminal_engine import Dealer, Lucky9, Player
 
-# pygame.init()
-
-# BG_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "bg_music.wav"))
-# WIN_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "win.wav"))
-# LOSE_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "lose.wav"))
-# TIE_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "tie.wav"))
-# BET_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "bet.wav"))
-# REVEAL_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "reveal.wav"))
-# HITS_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "hits.wav"))
-# GOOD_SOUND = pygame.mixer.Sound(str(SOUND_ASSETS_DIR / "good.mp3"))
+BET_OPTIONS = (1_000, 2_000, 5_000)
 
 
-# class GameState(Enum):
-#     DEALING = 1
-#     PLAYER_TURN = 2
-#     DEALER_TURN = 3
-#     WAITING = 4
-#     END_ROUND = 5
+class Phase(str, Enum):
+    BETTING = "betting"
+    PLAYER_TURN = "player_turn"
+    ROUND_OVER = "round_over"
+    GAME_OVER = "game_over"
 
 
-# class Card:
-#     def __init__(self, name):
-#         self.suit, self.rank = name
-#         self.name = name
-#         self.value = int(self.rank)
-#         self.imageFile = f"{self.suit}-{self.rank}.png"
-#         self.imagePath = ASSETS_DIR / "card_images"
-#         self.face = pygame.image.load(self.imagePath / self.imageFile)
-#         self.back = pygame.image.load(self.imagePath / "back.png")
-#         self.showFace = False
+class Lucky9Session:
+    def __init__(
+        self,
+        player_name: str = "Player",
+        data_dir: Path | None = None,
+        deck_factory: Callable[[], list] | None = None,
+    ):
+        self._deck_factory = deck_factory or Lucky9.createDeck
+        self._data_dir = data_dir
+        self._player_name = player_name
+        self.game = self._new_game()
+        self.phase = Phase.BETTING
+        self.message = "Choose a bet to start."
+        self.winner: str | None = None
+        self.bet = 0
 
-#     def display(self, screen, pos):
-#         if not self.showFace:
-#             self.rect = self.back.get_rect(topleft=pos)
-#             screen.blit(self.back, self.rect)
-#         else:
-#             self.rect = self.face.get_rect(topleft=pos)
-#             screen.blit(self.face, self.rect)
+    def _new_game(self) -> Lucky9:
+        game = Lucky9(Player(self._player_name), data_dir=self._data_dir)
+        game.deck = list(self._deck_factory())
+        return game
 
+    @property
+    def player(self) -> Player:
+        return self.game.player
 
-# class Deck:
-#     def __init__(self):
-#         self.suits = ("diamonds", "hearts", "spades", "clubs")
-#         self.ranks = list(str(num) for num in range(1, 11))
-#         self.cards = self.createDeck()
-#         self.isClicked = False
+    @property
+    def dealer(self) -> Dealer:
+        return self.game.dealer
 
-#     def createDeck(self):
-#         deck = [Card((suit, rank)) for suit in self.suits for rank in self.ranks]
-#         random.shuffle(deck)
-#         return deck
+    @property
+    def level(self) -> int:
+        return self.game.level
 
-#     def deal(self):
-#         return self.cards.pop()
+    @property
+    def can_bet(self) -> bool:
+        return self.phase is Phase.BETTING and any(
+            amount <= self.player.money for amount in BET_OPTIONS
+        )
 
-#     def displayDeck(self, screen, pos):
-#         x, y = pos
-#         for card in self.cards:
-#             card.display(screen, pos)
+    @property
+    def can_hit(self) -> bool:
+        return self.phase is Phase.PLAYER_TURN and len(self.player.hand) == 2
 
-#     def isPressed(self):
-#         action = False
-#         mousePos = pygame.mouse.get_pos()
-#         if self.cards[0].rect.collidepoint(mousePos):
-#             if pygame.mouse.get_pressed()[0] == 1 and not self.isClicked:
-#                 self.isClicked = True
-#                 action = True
-#             if pygame.mouse.get_pressed()[0] == 0:
-#                 self.isClicked = False
-#         return action
+    @property
+    def can_stand(self) -> bool:
+        return self.phase is Phase.PLAYER_TURN
 
+    @property
+    def can_next(self) -> bool:
+        return self.phase is Phase.ROUND_OVER
 
-# class Player:
-#     def __init__(self, name, money):
-#         self.name = name
-#         self.money = money
-#         self.bet = 0
-#         self.hand = []
-#         self.xPosSpacer = 10
-#         self.showHandFace = False
-#         self.isHandRevealed = False
-#         self.madeBet = False
+    def place_bet(self, amount: int) -> bool:
+        if self.phase is not Phase.BETTING:
+            return False
+        if amount not in BET_OPTIONS or amount > self.player.money:
+            self.message = "That bet is not available."
+            return False
+        self._ensure_deck()
+        self.bet = amount
+        self.player.hand = []
+        self.dealer.hand = []
+        self.winner = None
+        for _ in range(2):
+            self.player.hand.append(self.game.deck.pop())
+            self.dealer.hand.append(self.game.deck.pop())
+        self.phase = Phase.PLAYER_TURN
+        self.message = "Hit or stand?"
+        return True
 
-#     def hits(self, card):
-#         if len(self.hand) == 2:
-#             self.hand.append(card)
-#         self.isHandRevealed = False
+    def _ensure_deck(self) -> None:
+        if len(self.game.deck) < 10:
+            self.game.deck = list(self._deck_factory())
 
-#     def revealHand(self):
-#         for card in self.hand:
-#             card.showFace = True
-#         self.isHandRevealed = True
+    def hit(self) -> None:
+        if not self.can_hit:
+            return
+        self._ensure_deck()
+        self.player.hand.append(self.game.deck.pop())
+        self.player.drewCard = True
+        self._resolve_round()
 
-#     def displayHand(self, screen, pos):
-#         x, y = pos
-#         for i, card in enumerate(self.hand):
-#             card.display(screen, (x + (i * self.xPosSpacer), y))
+    def stand(self) -> None:
+        if not self.can_stand:
+            return
+        self.player.drewCard = False
+        self._resolve_round()
 
-#     def isHandPressed(self):
-#         action = False
-#         if self.hand:
-#             topmostCard = self.hand[0]
-#             mousePos = pygame.mouse.get_pos()
-#             if topmostCard.rect.collidepoint(mousePos):
-#                 if pygame.mouse.get_pressed()[0] == 1 and not self.showHandFace:
-#                     self.showHandFace = True
-#                     action = True
-#                 if pygame.mouse.get_pressed()[0] == 0:
-#                     self.showHandFace = False
-#         return action
+    def _resolve_round(self) -> None:
+        self._ensure_deck()
+        while int(self.dealer.getHandValue()) < 7 and len(self.dealer.hand) < 3:
+            self.dealer.hand.append(self.game.deck.pop())
+        self.winner = self.game.settle_round(self.bet)
+        if self.winner == "player":
+            self.message = f"You win {self.bet:,} pesos."
+        elif self.winner == "dealer":
+            self.message = f"The dealer wins {self.bet:,} pesos."
+        else:
+            self.message = "It's a tie."
+        self.phase = Phase.ROUND_OVER
 
-#     def getHandValue(self):
-#         value = 0
-#         for i, card in enumerate(self.hand):
-#             value += int(card.rank)
-#             if value % 10 == 0:
-#                 value = 0
-#             else:
-#                 value %= 10
-#         return value
+    def next_round(self) -> None:
+        if self.phase is not Phase.ROUND_OVER:
+            return
+        self.player.hand = []
+        self.dealer.hand = []
+        self.bet = 0
+        self.winner = None
+        self.message = "Choose a bet to start."
+        if self.dealer.money <= 0:
+            new_dealer = self.game.advance_level()
+            if new_dealer is None:
+                self.phase = Phase.GAME_OVER
+                self.message = "You beat every dealer. You win the game!"
+                return
+            self.message = f"Level {self.level}: {new_dealer.name} sits down."
+        if self.player.money < min(BET_OPTIONS):
+            self.phase = Phase.GAME_OVER
+            self.message = "You are out of money. Restart to play again."
+            return
+        self.phase = Phase.BETTING
 
-
-# class Dealer(Player):
-#     isHandPressed = None
-
-#     def __init__(self, name, money):
-#         self.name = name
-#         self.money = money
-#         self.hand = []
-#         self.xPosSpacer = 10
-#         self.showHandFace = False
-#         self.isHandRevealed = False
-
-
-# class Coin:
-#     coinValueFont = pygame.font.Font("freesansbold.ttf", 15)
-
-#     def __init__(self, name, value, pos):
-#         self.name = name
-#         self.value = value
-#         self.pos = pos
-#         self.imageFile = name + ".png"
-#         self.imagePath = ASSETS_DIR / "coin_images"
-#         self.image = pygame.image.load(self.imagePath / self.imageFile)
-#         self.rect = self.image.get_rect(midleft=(pos))
-#         self.valueTextYSpacer = 40
-#         self.valueTextXSpacer = 8
-#         self.isClicked = False
-
-#     def display(self, screen):
-#         x, y = self.pos
-#         valueText = self.coinValueFont.render(f"{self.value:,}", True, WHITE)
-#         screen.blit(valueText, (x + self.valueTextXSpacer, y + self.valueTextYSpacer))
-#         screen.blit(self.image, self.rect)
-
-#     def isPressed(self):
-#         action = False
-#         mousePos = pygame.mouse.get_pos()
-#         if self.rect.collidepoint(mousePos):
-#             if pygame.mouse.get_pressed()[0] == 1 and not self.isClicked:
-#                 self.isClicked = True
-#                 action = True
-#             if pygame.mouse.get_pressed()[0] == 0:
-#                 self.isClicked = False
-#         return action
-
-
-# class Button:
-#     buttonFont = pygame.font.Font("freesansbold.ttf", 25)
-
-#     def __init__(self, text, size, pos, textColor=WHITE):
-#         self.isClicked = False
-#         self.topRect = pygame.Rect(pos, size)
-#         self.topColor = BLUE
-#         self.textSurf = self.buttonFont.render(text, True, textColor)
-#         self.textRect = self.textSurf.get_rect(center=self.topRect.center)
-
-#     def display(
-#         self,
-#         screen,
-#     ):
-#         pygame.draw.rect(screen, self.topColor, self.topRect, border_radius=8)
-#         screen.blit(self.textSurf, self.textRect)
-
-#     def isPressed(self, onColor=SILVER, offColor=BLUE):
-#         action = False
-#         mousePos = pygame.mouse.get_pos()
-#         if self.topRect.collidepoint(mousePos):
-#             self.topColor = onColor
-#             if pygame.mouse.get_pressed()[0]:
-#                 self.isClicked = True
-#             else:
-#                 if self.isClicked:
-#                     action = True
-#                     self.isClicked = False
-#         else:
-#             self.topColor = offColor
-#         return action
+    def restart(self) -> None:
+        self.game = self._new_game()
+        self.phase = Phase.BETTING
+        self.bet = 0
+        self.winner = None
+        self.message = "Choose a bet to start."

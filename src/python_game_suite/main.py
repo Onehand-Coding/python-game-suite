@@ -30,7 +30,7 @@ def discover_games():
                     game_name = obj.get_name()
                     if game_name:
                         game_classes[game_name] = obj
-        except ImportError as e:
+        except Exception as e:
             print(f"Warning: Could not import module {module_name}: {e}")
 
     return game_classes
@@ -49,7 +49,7 @@ def main():
     while True:
         print("\nPlease choose a game to play:")
         # Create a numbered list of games
-        game_map = list(available_games.keys())
+        game_map = sorted(available_games)
         for i, name in enumerate(game_map, 1):
             print(f"  {i}. {name}")
         print(f"  {len(game_map) + 1}. Exit")
