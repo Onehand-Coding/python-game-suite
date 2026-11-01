@@ -2,6 +2,7 @@ import sys
 import time
 
 from python_game_suite.common.game_template import Game
+
 from .terminal_engine import Lucky9, Player
 
 TAGALOG_COUNT = {
@@ -103,20 +104,7 @@ def displayHands(revealDealerHand=True):
 
 
 def checkWinner():
-    playerHandValue = lucky9.player.getHandValue()
-    dealerHandValue = lucky9.dealer.getHandValue()
-
-    if playerHandValue < dealerHandValue:
-        lucky9.player.money -= lucky9.player.bet
-        lucky9.dealer.money += lucky9.player.bet
-        return "dealer"
-
-    elif playerHandValue > dealerHandValue:
-        lucky9.player.money += lucky9.player.bet
-        lucky9.dealer.money -= lucky9.player.bet
-        return "player"
-
-    return "tie"
+    return lucky9.settle_round(lucky9.player.bet)
 
 
 def displayWinner():
@@ -168,24 +156,25 @@ def borrowMoney(loanLimit=5_000):
                 return True
 
 
-def levelUp():  # TODO: Find Better implimentation.
-    if lucky9.level < 5:
-        print(f"\nUbos na ang pera ni {lucky9.dealer.name} :)")
-        print("\nmagpapalit ng bangka...")
-        time.sleep(3)
-        lucky9.level += 1
-        lucky9.dealer = lucky9.inviteDealer()
-        input("\n\tgame?")
-        print(f"\nbagong Bangka:\n{lucky9.dealer}")
-
-    else:
+def levelUp():
+    old_dealer = lucky9.dealer
+    new_dealer = lucky9.advance_level()
+    if new_dealer is None:
         print(
-            f"\nUyy Congrats panalo kana!!!, maari mo ng i bangko iyang {lucky9.player.money:,} Pesos mo."
+            f"\nUyy Congrats panalo kana!!!, maari mo ng i bangko iyang "
+            f"{lucky9.player.money:,} Pesos mo."
         )
         time.sleep(2)
         input()
         saveGame()
         sys.exit()
+        return
+
+    print(f"\nUbos na ang pera ni {old_dealer.name} :)")
+    print("\nmagpapalit ng bangka...")
+    time.sleep(3)
+    input("\n\tgame?")
+    print(f"\nbagong Bangka:\n{new_dealer}")
 
 
 def checkDeckCount():
@@ -319,36 +308,33 @@ def getNewName():
         return newName
 
 
-def collectPlayerDebt():  # TODO: find a better way to impliment this.
-    if (
-        lucky9.player.money * 0.50
-    ) >= lucky9.player.debt and lucky9.player.debt >= 10_000:
-        print("\nHuy malaki laki na ang pera mo ah, magbabayad kana ba ng utang?")
-        print(f"{lucky9.player.debt:,} Pesos ang utang mo.")
-        if not yesOrNo():
-            if lucky9.player.timesRefusedToPay == 3:
-                print(
-                    f"\n{lucky9.player.timesRefusedToPay} beses kanang umiwas magbayad, babawasan ng doble ang pera mo."
-                )
-                time.sleep(2)
-                lucky9.player.money -= lucky9.player.debt * 2
-                lucky9.player.debt = 0
-                print(lucky9.player)
-                input("\n\tGame?")
-                lucky9.player.timesRefusedToPay = 0
-                return
-            print("\nnaku! pagka kuripot naman?")
-            lucky9.player.timesRefusedToPay += 1
-            time.sleep(2)
-        else:
-            lucky9.player.money -= lucky9.player.debt
-            lucky9.player.debt = 0
-            print("\nnagbabayad ng utang...")
-            time.sleep(3)
-            print("\nAyan bayad na utang mo.")
-            time.sleep(1)
-            print(f"{lucky9.player}")
-            input("\n\tGame?")
+def collectPlayerDebt():
+    if not lucky9.debt_offer_available():
+        return
+
+    print("\nHuy malaki laki na ang pera mo ah, magbabayad kana ba ng utang?")
+    print(f"{lucky9.player.debt:,} Pesos ang utang mo.")
+    refusals = lucky9.player.timesRefusedToPay
+    outcome = lucky9.settle_debt(yesOrNo())
+
+    if outcome == "penalty":
+        print(
+            f"\n{refusals} beses kanang umiwas magbayad, "
+            "babawasan ng doble ang pera mo."
+        )
+        time.sleep(2)
+        print(lucky9.player)
+        input("\n\tGame?")
+    elif outcome == "refused":
+        print("\nnaku! pagka kuripot naman?")
+        time.sleep(2)
+    else:
+        print("\nnagbabayad ng utang...")
+        time.sleep(3)
+        print("\nAyan bayad na utang mo.")
+        time.sleep(1)
+        print(f"{lucky9.player}")
+        input("\n\tGame?")
 
 
 def yesOrNo():
@@ -362,10 +348,9 @@ def yesOrNo():
 
 
 class TerminalLucky9(Game):
-
     @staticmethod
     def get_name():
-        return "Terminal Lucky9"
+        return "Lucky9 (Terminal)"
 
     def run(self):
         global lucky9

@@ -1,33 +1,34 @@
-# Build system configuration
 [build-system]
 requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
-# Project metadata and dependencies
 [project]
 name = "python-game-suite"
-version = "1.0.0"
-description = "A collection of classic games implemented in Python."
-requires-python = ">=3.9"
+version = "1.1.0"
+description = "A collection of classic terminal and GUI games implemented in Python."
+readme = "README.md"
+requires-python = ">=3.10"
 authors = [
     { name = "Onehand Coding", email = "Onehand.coding433@gmail.com" },
 ]
-
 dependencies = [
     "pygame>=2.5.0",
 ]
 
-# Development dependencies
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.6",        # Linting and formatting
+    "pytest>=8.4",
+    "pytest-mock>=3.14",
+    "ruff>=0.6",
 ]
 
-# CLI entry point
 [project.scripts]
 run-games = "python_game_suite.main:main"
 
-# Code formatting and linting
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"

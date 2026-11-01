@@ -1,264 +1,261 @@
-# import pickle
-# import sys
-# from pathlib import Path
+# ruff: noqa: E402
+from __future__ import annotations
 
-# import pygame
+import os
 
-# from lucky_class.gui import *
-# from games.common.game_template import Game
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
-# pygame.init()
+import pygame
 
-# # Window setup
-# WIDTH = 600
-# HEIGHT = 400
-# WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
-# pygame.display.set_caption("Lucky9 Game")
-# FPS = 60
-# CLOCK = pygame.time.Clock()
+from python_game_suite.common.game_template import Game
+from python_game_suite.lucky9.colors import (
+    BLACK,
+    CARD_BACK,
+    CARD_FACE,
+    GOLD,
+    GRAY,
+    RED,
+    TABLE_GREEN,
+    WHITE,
+)
+from python_game_suite.lucky9.gui_engine import (
+    BET_OPTIONS,
+    Lucky9Session,
+    Phase,
+)
 
-# # constants
-# DEALER_POS = (50, 230)
-# PLAYER_POS = (410, 230)
-# DECK_POS = (240, 140)
-# DELAY_DURATION = 2_000
-# DISPLAY_WINNER_DURATION = 3_000
-
-# # Fonts
-# TEXT_FONT = pygame.font.SysFont("comicsans", 25)
-# SMALL_TEXT_FONT = pygame.font.SysFont("calibri", 20)
-
-# # tracks the time to impliment delays.
-# lastActionTime = 0
-
-# # Game Objects
-# currentState = GameState.DEALING
-# deck = Deck()
-# player = Player("Kenneth", 10_000)
-# dealer = Dealer("Bangka", 1_000_000)
-# goodButton = Button("GOOD", (100, 20), (215, 250))
-# coins = [
-#     Coin("red", 1_000, (320, 65)),
-#     Coin("blue", 5_000, (380, 65)),
-#     Coin("yellow", 10_000, (440, 65)),
-#     Coin("green", 20_000, (500, 65)),
-# ]
-
-# # sound
-# BG_SOUND.play(-1)
-
-# # Folder to save game data
-# luckyFolder = Path.home() / ".Lucky9 data"
-# if not luckyFolder.exists():
-#     luckyFolder.mkdir()
+WIDTH = 960
+HEIGHT = 600
+FPS = 60
+CARD_W = 70
+CARD_H = 100
+CARD_GAP = 12
+SUIT_LABELS = {
+    chr(9830): ("D", RED),
+    chr(9829): ("H", RED),
+    chr(9824): ("S", BLACK),
+    chr(9827): ("C", BLACK),
+    "D": ("D", RED),
+    "H": ("H", RED),
+    "S": ("S", BLACK),
+    "C": ("C", BLACK),
+}
 
 
-# def displayWinner(pos):
-#     winner = checkWinner()
-#     winnerText = TEXT_FONT.render(f"{winner}", True, WHITE)
-#     WINDOW.blit(winnerText, pos)
+class Lucky9Gui(Game):
+    def __init__(self, session: Lucky9Session | None = None):
+        pygame.font.init()
+        self.session = session or Lucky9Session()
+        self.buttons: dict[str, pygame.Rect] = {}
+        self.font_title = pygame.font.Font(None, 52)
+        self.font = pygame.font.Font(None, 30)
+        self.font_small = pygame.font.Font(None, 22)
 
+    @staticmethod
+    def get_name():
+        return "Lucky9 (GUI)"
 
-# def checkWinner():
-#     if dealer.getHandValue() > player.getHandValue():
-#         LOSE_SOUND.play()
-#         dealer.money += player.bet
-#         player.money -= player.bet
-#         result = "Panalo ang Bangka!"
-#     elif dealer.getHandValue() < player.getHandValue():
-#         WIN_SOUND.play()
-#         dealer.money -= player.bet
-#         player.money += player.bet
-#         result = "Panalo ka!"
-#     else:
-#         TIE_SOUND.play()
-#         result = "Tabla!"
-#     return result
+    @property
+    def dealer_revealed(self) -> bool:
+        return self.session.phase in (
+            Phase.ROUND_OVER,
+            Phase.GAME_OVER,
+        )
 
+    def run(self) -> None:
+        pygame.init()
+        pygame.display.set_caption("Lucky 9")
+        screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        clock = pygame.time.Clock()
+        running = True
+        while running:
+            for event in pygame.event.get():
+                running = self.handle_event(event)
+                if not running:
+                    break
+            self.render(screen)
+            pygame.display.flip()
+            clock.tick(FPS)
+        pygame.quit()
 
-# def dealCards():
-#     global deck
-#     if len(deck.cards) <= 10:
-#         deck.cards = deck.createDeck()
-#     if not dealer.hand and not player.hand:
-#         for i in range(2):
-#             dealer.hand.append(deck.deal())
-#             player.hand.append(deck.deal())
+    def handle_event(self, event) -> bool:
+        if event.type == pygame.QUIT:
+            return False
 
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                return False
+            if self.session.phase is Phase.BETTING and event.key in (
+                pygame.K_1,
+                pygame.K_2,
+                pygame.K_3,
+            ):
+                index = event.key - pygame.K_1
+                self.session.place_bet(BET_OPTIONS[index])
+            elif self.session.phase is Phase.PLAYER_TURN:
+                if event.key == pygame.K_h:
+                    self.session.hit()
+                elif event.key == pygame.K_g:
+                    self.session.stand()
+            elif self.session.phase is Phase.ROUND_OVER and event.key == pygame.K_n:
+                self.session.next_round()
+            elif self.session.phase is Phase.GAME_OVER and event.key == pygame.K_r:
+                self.session.restart()
 
-# def resetGame():
-#     global currentState, lastActionTime
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for action, rect in self.buttons.items():
+                if rect.collidepoint(event.pos):
+                    return self._run_action(action)
 
-#     currentState = GameState.DEALING
-#     lastActionTime = 0
-#     dealer.hand.clear()
-#     player.hand.clear()
-#     dealer.isHandRevealed = False
-#     player.isHandRevealed = False
-#     player.bet = 0
-#     player.madeBet = False
+        return True
 
+    def _run_action(self, action: str) -> bool:
+        if action == "quit":
+            return False
+        if action.startswith("bet:"):
+            self.session.place_bet(int(action.split(":", 1)[1]))
+        elif action == "hit":
+            self.session.hit()
+        elif action == "stand":
+            self.session.stand()
+        elif action == "next":
+            self.session.next_round()
+        elif action == "restart":
+            self.session.restart()
+        return True
 
-# def displayCoins():
-#     for coin in coins:
-#         coin.display(WINDOW)
-#         if coin.isPressed() and not player.isHandRevealed and len(player.hand) != 3:
-#             if int(coin.value) <= player.money:
-#                 player.bet = int(coin.value)
-#                 player.madeBet = True
-#                 BET_SOUND.play()
+    def render(self, surface) -> None:
+        surface.fill(TABLE_GREEN)
+        self.buttons = {}
 
+        title = self.font_title.render("Lucky 9", True, GOLD)
+        surface.blit(title, (WIDTH // 2 - title.get_width() // 2, 12))
 
-# def saveGame():
-#     gameState = {"player_money": player.money, "dealer_money": dealer.money}
-#     with open(luckyFolder / "lucky9_data.pkl", "wb") as file:
-#         pickle.dump(gameState, file)
+        stats = [
+            f"Level: {self.session.level}",
+            f"You: {self.session.player.money:,}",
+            f"Dealer: {self.session.dealer.name} "
+            f"({max(self.session.dealer.money, 0):,})",
+            f"Bet: {self.session.bet:,}",
+        ]
+        x = 24
+        for text in stats:
+            rendered = self.font_small.render(text, True, WHITE)
+            surface.blit(rendered, (x, 72))
+            x += rendered.get_width() + 28
 
+        revealed = self.dealer_revealed
+        dealer_value = self.session.dealer.getHandValue() if revealed else "??"
+        self._draw_hand(
+            surface,
+            self.session.dealer.hand,
+            (WIDTH // 2 - CARD_W, 130),
+            f"Dealer: {dealer_value}",
+            face_up=revealed,
+            hidden_index=1,
+        )
+        self._draw_hand(
+            surface,
+            self.session.player.hand,
+            (WIDTH // 2 - CARD_W, 330),
+            f"You: {self.session.player.getHandValue()}",
+            face_up=True,
+        )
 
-# def loadGame():
-#     try:
-#         with open(luckyFolder / "lucky9_data.pkl", "rb") as file:
-#             gameState = pickle.load(file)
-#             player.money = gameState["player_money"]
-#             dealer.money = gameState["dealer_money"]
-#     except FileNotFoundError:
-#         pass
+        message = self.font.render(self.session.message, True, GOLD)
+        surface.blit(
+            message,
+            (WIDTH // 2 - message.get_width() // 2, 470),
+        )
+        self._draw_buttons(surface)
 
+    def _draw_hand(
+        self,
+        surface,
+        hand,
+        origin,
+        label,
+        face_up=True,
+        hidden_index=None,
+    ) -> None:
+        text = self.font_small.render(label, True, WHITE)
+        surface.blit(text, (origin[0], origin[1] - 26))
+        if not hand:
+            empty = self.font_small.render("No cards", True, GRAY)
+            surface.blit(empty, (origin[0], origin[1] + 30))
+            return
+        for index, card in enumerate(hand):
+            shown = face_up or index != hidden_index
+            self._draw_card(
+                surface,
+                card,
+                (origin[0] + index * (CARD_W + CARD_GAP), origin[1]),
+                shown,
+            )
 
-# def handleState():
-#     global currentState, lastActionTime
+    def _draw_card(self, surface, card, pos, face_up) -> None:
+        rect = pygame.Rect(pos, (CARD_W, CARD_H))
+        if not face_up:
+            pygame.draw.rect(surface, CARD_BACK, rect, border_radius=8)
+            pygame.draw.rect(surface, WHITE, rect, 2, border_radius=8)
+            inner = rect.inflate(-20, -20)
+            pygame.draw.rect(surface, WHITE, inner, 1, border_radius=4)
+            label = self.font_small.render("L9", True, WHITE)
+            surface.blit(
+                label,
+                (
+                    rect.centerx - label.get_width() // 2,
+                    rect.centery - label.get_height() // 2,
+                ),
+            )
+            return
 
-#     if currentState == GameState.DEALING:
-#         displayCoins()
-#         dealCards()
-#         currentState = GameState.PLAYER_TURN
+        pygame.draw.rect(surface, CARD_FACE, rect, border_radius=8)
+        pygame.draw.rect(surface, BLACK, rect, 2, border_radius=8)
+        rank, suit = card
+        label, color = SUIT_LABELS.get(suit, ("?", BLACK))
+        rank_text = self.font.render(str(rank), True, color)
+        suit_text = self.font.render(label, True, color)
+        surface.blit(rank_text, (pos[0] + 8, pos[1] + 8))
+        surface.blit(suit_text, (pos[0] + 8, pos[1] + 44))
 
-#     elif currentState == GameState.PLAYER_TURN:
-#         if deck.isPressed() and player.isHandRevealed and not dealer.isHandRevealed:
-#             player.hits(deck.deal())
-#             HITS_SOUND.play()
-#         if player.isHandPressed() and player.madeBet:
-#             player.revealHand()
-#             REVEAL_SOUND.play()
-#             if len(player.hand) == 3 and player.isHandRevealed:
-#                 currentState = GameState.DEALER_TURN
-#         elif (
-#             goodButton.isPressed(GREEN, DARK_GREEN)
-#             and player.isHandRevealed
-#             and not dealer.isHandRevealed
-#         ):
-#             GOOD_SOUND.play()
-#             currentState = GameState.DEALER_TURN
-#         lastActionTime = pygame.time.get_ticks()
+    def _draw_buttons(self, surface) -> None:
+        x = 24
+        for amount in BET_OPTIONS:
+            action = f"bet:{amount}"
+            rect = pygame.Rect(x, 520, 140, 46)
+            enabled = (
+                self.session.phase is Phase.BETTING
+                and amount <= self.session.player.money
+            )
+            self._draw_button(surface, rect, f"{amount:,}", enabled, action)
+            x += 154
 
-#     elif currentState == GameState.DEALER_TURN:
-#         if pygame.time.get_ticks() - lastActionTime >= DELAY_DURATION:
-#             if dealer.getHandValue() < 7:
-#                 dealer.hits(deck.deal())
-#                 HITS_SOUND.play()
-#                 currentState = GameState.WAITING
-#             else:
-#                 dealer.revealHand()
-#                 REVEAL_SOUND.play()
-#                 currentState = GameState.END_ROUND
-#             lastActionTime = pygame.time.get_ticks()
+        actions = []
+        if self.session.phase is Phase.PLAYER_TURN:
+            actions = [("H Hit", "hit"), ("G Stand", "stand")]
+        elif self.session.phase is Phase.ROUND_OVER:
+            actions = [("N Next", "next")]
+        elif self.session.phase is Phase.GAME_OVER:
+            actions = [("R Restart", "restart")]
+        actions.append(("Q Quit", "quit"))
 
-#     elif currentState == GameState.WAITING:
-#         if pygame.time.get_ticks() - lastActionTime >= DELAY_DURATION:
-#             dealer.revealHand()
-#             REVEAL_SOUND.play()
-#             currentState = GameState.END_ROUND
-#             lastActionTime = pygame.time.get_ticks()
+        x = 520
+        for label, action in actions:
+            rect = pygame.Rect(x, 520, 130, 46)
+            self._draw_button(surface, rect, label, True, action)
+            x += 144
 
-#     elif currentState == GameState.END_ROUND:
-#         if pygame.time.get_ticks() - lastActionTime >= DISPLAY_WINNER_DURATION:
-#             displayWinner((50, 100))
-#             pygame.display.update()
-#             pygame.time.delay(DISPLAY_WINNER_DURATION)
-#             resetGame()
-
-#     if pygame.key.get_pressed()[pygame.K_s]:
-#         saveGame()
-
-
-# def displayIntro():
-#     intro_text = TEXT_FONT.render("Tara Lucky9 tayo!", True, WHITE)
-#     WINDOW.blit(intro_text, (150, 100))
-
-#     menu_text = TEXT_FONT.render("Pindutin ang Space para maglaro.", True, WHITE)
-#     WINDOW.blit(menu_text, (100, 200))
-
-#     pygame.display.update()
-
-#     while True:
-#         for event in pygame.event.get():
-#             if event.type == pygame.QUIT:
-#                 pygame.quit()
-#                 sys.exit()
-
-#             elif event.type == pygame.KEYDOWN:
-#                 if event.key == pygame.K_SPACE:
-#                     return
-
-
-# def renderGame():
-#     displayCoins()
-#     dealCards()
-
-#     #  Button
-#     goodButton.display(WINDOW)
-
-#     # Deck
-#     deck.displayDeck(WINDOW, DECK_POS)
-#     cardCountText = SMALL_TEXT_FONT.render(f"bilang: {len(deck.cards)}", True, WHITE)
-#     WINDOW.blit(cardCountText, (230, 140 + 75))
-
-#     # Dealer
-#     dealer.displayHand(WINDOW, DEALER_POS)
-#     dealerHandValue = "??" if not dealer.isHandRevealed else dealer.getHandValue()
-#     dealerHandValueText = TEXT_FONT.render(
-#         f"{dealer.name}: {dealerHandValue}", True, WHITE
-#     )
-#     WINDOW.blit(dealerHandValueText, (50, 180))
-#     dealerMoneyText = TEXT_FONT.render(f"Pera: {dealer.money:,} Pesos", True, WHITE)
-#     WINDOW.blit(dealerMoneyText, (50, 300))
-
-#     # Player
-#     player.displayHand(WINDOW, PLAYER_POS)
-#     playerHandValue = "??" if not player.isHandRevealed else player.getHandValue()
-#     playerHandValueText = TEXT_FONT.render(f"Ikaw: {playerHandValue}", True, WHITE)
-#     WINDOW.blit(playerHandValueText, (410, 180))
-#     playerMoneyText = TEXT_FONT.render(f"Pera: {player.money:,} Pesos", True, WHITE)
-#     WINDOW.blit(playerMoneyText, (350, 300))
-#     if player.bet != 0:
-#         playerBetText = TEXT_FONT.render(f"Taya: {player.bet:,} Pesos", True, WHITE)
-#     else:
-#         playerBetText = TEXT_FONT.render(f"Taya: {player.bet:,}", True, WHITE)
-#     WINDOW.blit(playerBetText, (50, 50))
-#     choiceBetText = TEXT_FONT.render("Pumili ng taya:", True, WHITE)
-#     WINDOW.blit(choiceBetText, (190, 2))
-
-#     handleState()
-
-
-# class Lucky9Gui(Game):
-
-#     @staticmethod
-#     def get_name(self):
-#         return "Lucky9 GUI"
-
-
-#     def run(self):
-#         loadGame()
-#         displayIntro()
-#         while True:  # Main game loop.
-#             WINDOW.fill(BLACK)
-#             for event in pygame.event.get():
-#                 if event.type == pygame.QUIT:
-#                     pygame.quit()
-#                     sys.exit()
-
-#             renderGame()
-
-#             pygame.display.update()
-#             CLOCK.tick(FPS)
+    def _draw_button(self, surface, rect, label, enabled, action) -> None:
+        color = GOLD if enabled else GRAY
+        pygame.draw.rect(surface, color, rect, border_radius=8)
+        pygame.draw.rect(surface, BLACK, rect, 2, border_radius=8)
+        text = self.font_small.render(label, True, BLACK)
+        surface.blit(
+            text,
+            (
+                rect.centerx - text.get_width() // 2,
+                rect.centery - text.get_height() // 2,
+            ),
+        )
+        self.buttons[action] = rect

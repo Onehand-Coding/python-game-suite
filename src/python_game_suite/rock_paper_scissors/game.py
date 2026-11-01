@@ -89,6 +89,8 @@ class RockPaperScissorsGame(Game):
 
     def _play_again(self):
         """Asks the user if they want to play another match."""
-        print("\nPlay another match? (Y/n)")
-        return input("> ").lower().strip().startswith("y")
-
+        while True:
+            choice = input("\nPlay another match? (y/n): ").lower().strip()
+            if choice in ["y", "n"]:
+                return choice == "y"
+            print("Invalid input. Please enter 'y' or 'n'.")

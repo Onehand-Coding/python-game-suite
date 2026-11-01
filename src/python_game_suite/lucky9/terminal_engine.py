@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import random
 import shelve
+from pathlib import Path
 
 from .config import DATA_DIR
 
 
 class Lucky9:
-    def __init__(self, player):
+    def __init__(self, player, data_dir: Path | None = None):
         self.dealers = {
             5: {"Robin": 1_000_000},
             4: {"Caesar": 800_000},
@@ -17,18 +20,18 @@ class Lucky9:
         self.player = player
         self.deck = self.createDeck()
         self.dealer = self.inviteDealer()
-        self.dataFolder = DATA_DIR
-        if not self.dataFolder.exists():
-            self.dataFolder.mkdir()
+        self.dataFolder = Path(data_dir) if data_dir is not None else DATA_DIR
+        self.dataFolder.mkdir(parents=True, exist_ok=True)
         self.database = self.dataFolder / "lucky_data"
+        self.isLoaded = False
 
     @staticmethod
     def createDeck():
         suits = [
-            chr(9830),  # Diamonds
-            chr(9829),  # Hearts
-            chr(9824),  # Spades
-            chr(9827),  # Clubs
+            chr(9830),
+            chr(9829),
+            chr(9824),
+            chr(9827),
         ]
         ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
         cards = [(rank, suit) for rank in ranks for suit in suits]
@@ -37,9 +40,47 @@ class Lucky9:
 
     def inviteDealer(self):
         dealer = self.dealers.get(self.level)
+        if dealer is None:
+            raise ValueError(f"No dealer configured for level {self.level}")
         dealerName = list(dealer.keys())[0]
         dealerMoney = dealer.get(dealerName)
         return Dealer(dealerName, dealerMoney)
+
+    def settle_round(self, bet: int) -> str:
+        player_value = int(self.player.getHandValue())
+        dealer_value = int(self.dealer.getHandValue())
+        if player_value < dealer_value:
+            self.player.money -= bet
+            self.dealer.money += bet
+            return "dealer"
+        if player_value > dealer_value:
+            self.player.money += bet
+            self.dealer.money -= bet
+            return "player"
+        return "tie"
+
+    def advance_level(self) -> Dealer | None:
+        if self.level >= 5:
+            return None
+        self.level += 1
+        self.dealer = self.inviteDealer()
+        return self.dealer
+
+    def debt_offer_available(self) -> bool:
+        return self.player.money * 0.5 >= self.player.debt >= 10_000
+
+    def settle_debt(self, pay: bool) -> str:
+        if pay:
+            self.player.money -= self.player.debt
+            self.player.debt = 0
+            return "paid"
+        if self.player.timesRefusedToPay == 3:
+            self.player.money -= self.player.debt * 2
+            self.player.debt = 0
+            self.player.timesRefusedToPay = 0
+            return "penalty"
+        self.player.timesRefusedToPay += 1
+        return "refused"
 
     def getPlayerNames(self):
         with shelve.open(self.database) as db:
@@ -73,7 +114,7 @@ class Lucky9:
             del db[name]
 
     def clearData(self):
-        for file in self.dataFolder.iterdir():
+        for file in self.dataFolder.glob("lucky_data*"):
             file.unlink()
 
 
@@ -85,6 +126,7 @@ class Player:
         self.hand = []
         self.bet = None
         self.timesRefusedToPay = 0
+        self.drewCard = False
 
     def __str__(self):
         return f"\nPangalan: {self.name} \nPera: {self.money:,} Pesos \nUtang: {self.debt:,} Pesos"
@@ -99,7 +141,7 @@ class Player:
 
     def showHand(self, revealHand=True):
         lines = ["", "", "", ""]
-        for i, card in enumerate(self.hand):
+        for card in self.hand:
             if not revealHand:
                 lines[0] += " ___ "
                 lines[1] += "|#  |"
@@ -111,10 +153,10 @@ class Player:
                 lines[1] += "|{} |".format(rank.ljust(2))
                 lines[2] += "| {} |".format(suit)
                 lines[3] += "|_{}|".format(rank.rjust(2, "_"))
-        for i in lines:
-            print(i)
+        for line in lines:
+            print(line)
 
-    def getHandValue(self, revealHandValue=True):
+    def getHandValue(self, revealHandValue=True) -> int | str:
         value = 0
         aces = []
         ranks = []
